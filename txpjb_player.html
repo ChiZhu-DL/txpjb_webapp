@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TXPJB 糖心Vlog 网页版</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--line:#e4e7ec;--txt:#1f2328;--sub:#6b7280;
+        --accent:#e0366b;--accent2:#ff7aa8;--danger:#dc2626;--ok:#16a34a;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--txt);font-family:"Segoe UI","Microsoft YaHei",sans-serif;}
+  a{color:inherit;}
+  button{font-family:inherit;}
+
+  header{position:sticky;top:0;z-index:20;background:var(--card);border-bottom:1px solid var(--line);
+         padding:10px 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  header h1{font-size:17px;white-space:nowrap;background:linear-gradient(90deg,var(--accent),var(--accent2));
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .search{flex:1;display:flex;gap:8px;min-width:240px;max-width:620px;}
+  .search input{flex:1;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;outline:none;}
+  .search input:focus{border-color:var(--accent);}
+  .btn{padding:8px 15px;border:none;border-radius:8px;background:var(--accent);color:#fff;
+       font-size:14px;cursor:pointer;white-space:nowrap;}
+  .btn:hover{opacity:.9;}
+  .btn.ghost{background:#fff;color:var(--txt);border:1px solid var(--line);}
+  #acct{font-size:12px;color:var(--sub);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .vipb{display:inline-block;padding:1px 7px;border-radius:6px;font-size:11px;font-weight:700;
+        color:#fff;background:linear-gradient(135deg,#f59e0b,#d97706);}
+  .novipb{display:inline-block;padding:1px 7px;border-radius:6px;font-size:11px;
+          color:#6b7280;background:#f3f4f6;border:1px solid #e5e7eb;}
+  .coinb{display:inline-block;padding:1px 7px;border-radius:6px;font-size:11px;
+         color:#b45309;background:#fef3c7;border:1px solid #fde68a;}
+
+  /* 邀请奖励弹层 */
+  #invModal{position:fixed;inset:0;background:rgba(12,16,24,.72);display:none;
+            align-items:center;justify-content:center;padding:20px;z-index:70;}
+  #invModal.show{display:flex;}
+  #invPanel{background:var(--card);border-radius:12px;width:min(520px,100%);
+            max-height:90vh;overflow:auto;position:relative;padding:18px;}
+  #invPanel h3{font-size:15px;margin-bottom:10px;}
+  #invPanel .x{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:50%;
+               border:none;background:rgba(0,0,0,.55);color:#fff;cursor:pointer;font-size:16px;}
+  #invStat{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  #invStat .box{flex:1;min-width:120px;background:#f9fafb;border:1px solid var(--line);
+                border-radius:8px;padding:10px;text-align:center;}
+  #invStat .box b{display:block;font-size:20px;color:var(--accent);}
+  #invStat .box span{font-size:11px;color:var(--sub);}
+  #invCfg{width:100%;border-collapse:collapse;font-size:12px;}
+  #invCfg th,#invCfg td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;}
+  #invCfg th{color:var(--sub);font-weight:600;font-size:11px;}
+  #invCfg tr.hit{background:#fff7ed;}
+  #invFoot{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;}
+
+  /* 三级分类栏 */
+  #nav{background:var(--card);border-bottom:1px solid var(--line);padding:0 18px;position:sticky;top:49px;z-index:15;}
+  .navrow{display:flex;gap:6px;align-items:center;padding:8px 0;overflow-x:auto;scrollbar-width:thin;}
+  .navrow + .navrow{border-top:1px dashed var(--line);}
+  .navlabel{font-size:11px;color:var(--sub);white-space:nowrap;padding-right:6px;
+            border-right:1px solid var(--line);margin-right:4px;flex-shrink:0;}
+  .chip{padding:5px 13px;border-radius:999px;border:1px solid var(--line);background:#fff;
+        font-size:13px;cursor:pointer;white-space:nowrap;color:var(--txt);transition:.13s;}
+  .chip:hover{border-color:var(--accent);color:var(--accent);}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .chip.l3{font-size:12px;padding:4px 11px;background:#fafbfc;}
+  .chip.l3.on{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+  .navrow.hidden{display:none;}
+
+  /* 更多标签抽屉 */
+  #tagBar{background:linear-gradient(90deg,#fff8fa,#fff);border-bottom:1px solid var(--line);padding:8px 18px;
+          display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  #tagBar .lb{font-size:12px;color:var(--accent);font-weight:600;cursor:pointer;
+              display:flex;align-items:center;gap:5px;white-space:nowrap;}
+  #tagList{display:flex;gap:6px;flex-wrap:wrap;flex:1;}
+  .tagchip{padding:3px 10px;border-radius:6px;background:#fff;border:1px solid #f3d3dd;
+           font-size:12px;cursor:pointer;color:#8a2440;white-space:nowrap;}
+  .tagchip:hover{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .tagchip.hot{border-color:#ffc9d8;background:#fff0f4;}
+  #tagBar.collapsed #tagList{display:none;}
+
+  /* 排序 */
+  #sortbar{display:flex;gap:8px;align-items:center;padding:10px 18px;flex-wrap:wrap;font-size:13px;}
+  #sortbar .info{color:var(--sub);font-size:12px;}
+  #sortbar .sp{flex:1;}
+
+  main{padding:0 18px 30px;}
+  /* align-items:start：卡片高度各按内容走，否则同行里矮卡片被拉伸出大片空白 */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;align-items:start;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+        cursor:pointer;transition:.15s;display:flex;flex-direction:column;}
+  .card:hover{box-shadow:0 5px 16px rgba(0,0,0,.11);transform:translateY(-2px);}
+  .thumb{position:relative;background:#e9ecf1;aspect-ratio:16/9;}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .noimg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+         background:linear-gradient(135deg,#e8ebf1,#cfd6e2);color:#98a2b3;font-size:12px;}
+  .dur{position:absolute;right:5px;bottom:5px;background:rgba(0,0,0,.75);color:#fff;
+       font-size:11px;padding:1px 6px;border-radius:4px;}
+  .badge{position:absolute;left:5px;top:5px;font-size:10px;padding:1px 6px;border-radius:4px;
+         color:#fff;font-weight:600;}
+  .badge.vip{background:#f59e0b;}
+  .badge.coin{background:linear-gradient(135deg,#f59e0b,#d97706);}
+  .badge.free{background:var(--ok);}
+  .info{padding:8px 10px 10px;flex:1;display:flex;flex-direction:column;}
+  .info .t{font-size:13px;line-height:1.45;height:2.9em;overflow:hidden;display:-webkit-box;
+           -webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-all;}
+  .info .m{font-size:11px;color:var(--sub);margin-top:5px;display:flex;gap:9px;flex-wrap:wrap;}
+  .tg{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
+  .tg span{font-size:10px;background:#f3f4f6;color:#6b7280;padding:1px 6px;border-radius:4px;}
+
+  #more{text-align:center;padding:22px 0;}
+  #more button{padding:9px 26px;border:1px solid var(--line);background:#fff;border-radius:8px;
+              font-size:14px;cursor:pointer;color:var(--txt);}
+  #more button:hover{border-color:var(--accent);color:var(--accent);}
+  #empty{text-align:center;color:var(--sub);padding:70px 20px;}
+  #empty .big{font-size:40px;margin-bottom:10px;}
+
+  /* 详情弹层：只展示信息 + 选线路，不内嵌播放器 */
+  #modal{position:fixed;inset:0;background:rgba(12,16,24,.72);display:none;align-items:center;
+         justify-content:center;padding:20px;z-index:60;}
+  #modal.show{display:flex;}
+  #panel{background:var(--card);border-radius:12px;width:min(720px,100%);max-height:92vh;
+         overflow:auto;position:relative;display:flex;flex-direction:column;}
+  #close{position:absolute;right:10px;top:10px;width:32px;height:32px;border-radius:50%;
+         border:none;background:rgba(0,0,0,.55);color:#fff;font-size:17px;cursor:pointer;z-index:5;}
+  #phead{display:flex;gap:14px;padding:16px 18px 12px;}
+  #pcover{width:190px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:#e9ecf1;flex-shrink:0;}
+  #pheadInfo{flex:1;min-width:0;}
+  #pheadInfo h2{font-size:16px;line-height:1.5;margin-bottom:8px;word-break:break-all;}
+  #pmeta{font-size:12px;color:var(--sub);display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
+  #pbody{padding:0 18px 4px;overflow:auto;}
+  #pdesc{font-size:13px;color:#4b5563;line-height:1.6;margin-bottom:6px;}
+  #pline{margin-top:10px;}
+  #pline .lb{font-size:13px;color:var(--txt);font-weight:600;display:block;margin-bottom:7px;}
+  #pline .hint{font-weight:400;color:var(--sub);font-size:11px;margin-left:6px;}
+  #plines{display:flex;gap:8px;flex-wrap:wrap;}
+  #plines .chip{font-size:13px;padding:6px 14px;}
+  #pnote{margin-top:10px;font-size:13px;color:var(--danger);background:#fef2f2;border:1px solid #fecaca;
+         padding:8px 12px;border-radius:8px;display:none;}
+  /* 金币视频购买行 */
+  #pbuy{margin-top:10px;font-size:13px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;
+        padding:10px 12px;border-radius:8px;display:none;align-items:center;gap:10px;flex-wrap:wrap;}
+  #pbuy .btn{padding:6px 16px;font-size:13px;}
+  #purl{margin-top:10px;font-size:11px;color:var(--sub);word-break:break-all;background:#f9fafb;
+        padding:8px;border-radius:6px;border:1px solid var(--line);}
+  #pfoot{display:flex;gap:10px;justify-content:flex-end;padding:14px 18px 16px;
+         border-top:1px solid var(--line);margin-top:12px;}
+  #pfoot .btn{padding:9px 20px;}
+  @media(max-width:600px){
+    #phead{flex-direction:column;}
+    #pcover{width:100%;}
+  }
+
+  #toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%);background:rgba(20,24,32,.93);
+         color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:90;display:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>TXPJB 糖心Vlog</h1>
+  <div class="search">
+    <input id="q" placeholder="搜索标题 / 标签，回车搜索">
+    <button class="btn" onclick="doSearch()">搜索</button>
+    <button class="btn ghost" onclick="clearSearch()">清空</button>
+  </div>
+  <div id="acct"><span id="acctTxt">载入中…</span>
+    <button class="btn ghost" onclick="openInvite()">🎁 邀请奖励</button>
+    <button class="btn ghost" onclick="window.open('https://bkmh.alwaysdata.net/','_blank')">获取VIP</button>
+    <button class="btn ghost" onclick="newGuest()">换号</button>
+    <button class="btn ghost" onclick="showHealth()">状态</button>
+  </div>
+</header>
+
+<div id="nav">
+  <div class="navrow" id="row1"><span class="navlabel">大分类</span><span style="color:#9ca3af;font-size:12px">载入中…</span></div>
+  <div class="navrow hidden" id="row2"><span class="navlabel">小分类</span></div>
+  <div class="navrow hidden" id="row3"><span class="navlabel">更多标签</span></div>
+</div>
+
+<div id="tagBar" class="collapsed">
+  <span class="lb" onclick="toggleTags()">🏷️ 热门标签 <span id="tagArrow">▾</span></span>
+  <div id="tagList"></div>
+</div>
+
+<div id="sortbar">
+  <span class="navlabel" style="border:none">排序</span>
+  <span class="chip on" data-sort="SORT_PUBLISH" onclick="setSort('SORT_PUBLISH',this)">最新</span>
+  <span class="chip" data-sort="SORT_VIEW_COUNT" onclick="setSort('SORT_VIEW_COUNT',this)">最热</span>
+  <span class="chip" data-sort="SORT_FAVOR" onclick="setSort('SORT_FAVOR',this)">收藏</span>
+  <span class="chip" data-sort="SORT_PUBLISH_WEIGHT" onclick="setSort('SORT_PUBLISH_WEIGHT',this)">权重</span>
+  <span class="sp"></span>
+  <span class="info" id="cntInfo"></span>
+</div>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div id="more"><button onclick="loadMore()">加载更多</button></div>
+  <div id="empty" style="display:none"><div class="big">🔍</div>没有内容，换个分类或关键词试试</div>
+</main>
+
+<div id="modal" onclick="if(event.target===this)closeModal()">
+  <div id="panel">
+    <button id="close" onclick="closeModal()">×</button>
+    <div id="phead">
+      <img id="pcover" alt="">
+      <div id="pheadInfo">
+        <h2 id="ptitle">—</h2>
+        <div class="meta" id="pmeta"></div>
+        <div id="ptags" class="tg"></div>
+      </div>
+    </div>
+    <div id="pbody">
+      <div id="pdesc"></div>
+      <div id="pline">
+        <div class="lb">选择播放线路<span class="hint">（部分线路可能不可用，可逐个尝试）</span></div>
+        <div id="plines"></div>
+      </div>
+      <div id="pbuy">
+        <span id="pbuyInfo"></span>
+        <button class="btn" id="buyBtn" onclick="buyCurrent()">购买完整版</button>
+      </div>
+      <div id="pnote"></div>
+      <div id="purl"></div>
+    </div>
+    <div id="pfoot">
+      <button class="btn ghost" id="copyBtn" onclick="copyLink()">复制当前线路直链</button>
+      <button class="btn" id="goPlay" onclick="openPlayer()">▶ 播放（新标签打开直链）</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="invModal" onclick="if(event.target===this)closeInvite()">
+  <div id="invPanel">
+    <button class="x" onclick="closeInvite()">×</button>
+    <h3>🎁 邀请奖励</h3>
+    <div id="invStat">载入中…</div>
+    <table id="invCfg">
+      <thead><tr><th>邀请人数</th><th>奖励类型</th><th>奖励内容</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="invFoot">
+      <button class="btn ghost" onclick="closeInvite()">关闭</button>
+      <button class="btn" id="claimBtn" onclick="claimInvite()">领取奖励</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const S = { cats: [], tags: [], l1: null, l2: null, l3: null, tag: null,
+            page: 1, size: 20, total: 0, order: 'SORT_PUBLISH', kw: '',
+            cdnNames: [], playing: null, line: 0, mediaType: 1 };
+
+function toast(m){ const t=$('#toast'); t.textContent=m; t.style.display='block';
+  clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2600); }
+
+function fmtDur(s){ s=+s||0; const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60;
+  const p=n=>String(n).padStart(2,'0');
+  return h>0 ? `${h}:${p(m)}:${p(x)}` : `${m}:${p(x)}`; }
+
+function fmtViews(m){
+  const v = (+m.viewCount||0) + (+m.fakeViewCount||0);
+  if (v>=10000) return (v/10000).toFixed(1)+'万';
+  return String(v);
+}
+
+// ── 载入分类树 ─────────────────────────────────────────
+async function loadCats(){
+  const r = await fetch('/api/categories').then(x=>x.json());
+  if(!r.ok){ $('#row1').innerHTML='<span class="navlabel">大分类</span><span style="color:#dc2626;font-size:12px">分类加载失败</span>'; return; }
+  S.cats = r.categories||[];
+  toast(`已载入 ${r.l1} 大分类 / ${r.l2} 小分类 / ${r.l3} 三级标签`);
+  renderL1();
+}
+
+function renderL1(){
+  const el=$('#row1');
+  el.innerHTML='<span class="navlabel">大分类</span>'+S.cats.map(c=>
+    `<span class="chip" data-id="${c.id}" onclick="pickL1('${c.id}',this)">${c.name}</span>`).join('');
+}
+
+function pickL1(id, el){
+  S.l1=id; S.l2=null; S.l3=null; S.tag=null; S.kw=''; $('#q').value='';
+  document.querySelectorAll('#row1 .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  const cat=S.cats.find(c=>c.id===id);
+  // 该分支的 mediaType：取第一个有 mediaType 的三级节点（没有则保持默认 1）
+  const anyType=(cat&&cat.children||[]).flatMap(c2=>(c2.children||[]).map(c3=>c3.mediaType))
+                        .find(t=>t);
+  S.mediaType = anyType || 1;
+  const r2=$('#row2'), r3=$('#row3');
+  if(cat && cat.children.length){
+    r2.classList.remove('hidden');
+    r2.innerHTML='<span class="navlabel">小分类</span>'+cat.children.map(c2=>
+      `<span class="chip" data-id="${c2.id}" onclick="pickL2('${c2.id}',this)">${c2.name}</span>`).join('');
+    // 默认选中第一个小分类并展开三级
+    pickL2(cat.children[0].id, r2.querySelector('.chip'));
+  } else {
+    r2.classList.add('hidden'); r3.classList.add('hidden');
+    reset(); load(1);
+  }
+}
+
+function pickL2(id, el){
+  S.l2=id; S.l3=null;
+  document.querySelectorAll('#row2 .chip').forEach(c=>c.classList.remove('on'));
+  if(el) el.classList.add('on');
+  const cat=S.cats.find(c=>c.id===S.l1);
+  const c2=cat && cat.children.find(x=>x.id===id);
+  const r3=$('#row3');
+  // 「全部 / 推荐 / 综合推荐」是占位节点，本身没内容 → 不生成，也永不自动选中。
+  // 例如 AI 大分类下只有「ai」有视频，之前默认选中「全部」导致开页就是空。
+  const kids=(c2 && c2.children || []).filter(k=>!k.placeholder);
+  if(kids.length){
+    r3.classList.remove('hidden');
+    r3.innerHTML='<span class="navlabel">更多标签</span>'+kids.map(c3=>
+      `<span class="chip l3" data-id="${c3.id}" onclick="pickL3('${c3.id}',this)">${c3.name}</span>`).join('');
+    pickL3(kids[0].id, r3.querySelector('.chip'));
+  } else {
+    // 没有三级 → 直接用小分类本身出内容，不给「全部」选项
+    r3.classList.add('hidden');
+    const t=(c2 && c2.children || [])[0];
+    if(t && t.mediaType) S.mediaType=t.mediaType;
+    reset(); load(1);
+  }
+}
+
+function pickL3(id, el){
+  S.l3=id;
+  document.querySelectorAll('#row3 .chip').forEach(c=>c.classList.remove('on'));
+  if(el) el.classList.add('on');
+  reset(); load(1);
+}
+
+function reset(){ S.page=1; S.total=0; $('#grid').innerHTML=''; S.tag=null; window.__LIST=[];
+  document.querySelectorAll('#tagList .tagchip').forEach(c=>c.classList.remove('on')); }
+
+// ── 热门标签 ───────────────────────────────────────────
+async function loadTags(){
+  const r = await fetch('/api/tags?mediaType=1').then(x=>x.json());
+  S.tags = r.tags||[];
+  $('#tagList').innerHTML = S.tags.map(t=>
+    `<span class="tagchip${t.hot?' hot':''}" data-id="${t.id}" onclick="pickTag('${t.id}','${t.name}',this)">${t.name}</span>`
+  ).join('');
+}
+
+function toggleTags(){ const b=$('#tagBar'); b.classList.toggle('collapsed');
+  $('#tagArrow').textContent = b.classList.contains('collapsed')?'▾':'▴'; }
+
+function pickTag(id,name,el){
+  document.querySelectorAll('#tagList .tagchip').forEach(c=>c.classList.remove('on'));
+  if(S.tag===id){ S.tag=null; if(el) el.classList.remove('on'); }
+  else { S.tag=id; if(el) el.classList.add('on'); toast('按标签筛选：'+name); }
+  reset(); load(1);
+}
+
+// ── 加载内容 ───────────────────────────────────────────
+// mediaType 必须跟着所选分类走，不能写死 1：
+// 分类树里 L3 自带 mediaType —— 视频=1 / 短剧=9 / 漫画=8 / 小说=10 / Vlog=2 / AI=16。
+// 写死 1 会让 小说、漫画、动漫、AI 这些分支恒为空。
+function curMediaType(){
+  if(S.l3){
+    const cat=S.cats.find(c=>c.id===S.l1);
+    const c2=cat && cat.children.find(x=>x.id===S.l2);
+    const c3=c2 && (c2.children||[]).find(x=>x.id===S.l3);
+    if(c3 && c3.mediaType) return c3.mediaType;
+  }
+  return S.mediaType || 1;
+}
+
+function buildQuery(page){
+  const p=new URLSearchParams();
+  const catId = S.l3 || S.l2 || S.l1;
+  if(catId) p.set('categoryId', catId);
+  p.set('mediaType', String(curMediaType()));
+  p.set('pageNo',page); p.set('pageSize',S.size);
+  p.set('orderType',S.order);
+  if(S.kw) p.set('keyword',S.kw);
+  if(S.tag) p.set('tags',S.tag);
+  return p.toString();
+}
+
+async function load(page){
+  const grid=$('#grid');
+  if(page===1){ grid.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#9ca3af;padding:40px">加载中…</div>'; }
+  const r = await fetch('/api/list?'+buildQuery(page)).then(x=>x.json());
+  if(page===1){ grid.innerHTML=''; window.__LIST=[]; }
+  if(!r.ok || !r.items || !r.items.length){
+    if(page===1){ $('#empty').style.display='block'; $('#more').style.display='none'; }
+    return;
+  }
+  $('#empty').style.display='none';
+  S.total = r.total||0;
+  const start=(page-1)*S.size;
+  r.items.forEach((m,i)=>{
+    window.__LIST[start+i]=m;                       // 供play() 取原始数据
+    grid.insertAdjacentHTML('beforeend',cardHTML(m,start+i+1));
+  });
+  const shown=Object.keys(window.__LIST).length;
+  $('#cntInfo').textContent = `共 ${S.total} 条，已显示 ${shown} 条`;
+  if(shown>=S.total){
+    $('#more').style.display='none';
+    $('#more').innerHTML='<span style="color:#9ca3af;font-size:12px">— 已经到底了 —</span>';
+  } else {
+    $('#more').style.display='';
+    $('#more').innerHTML='<button onclick="loadMore()">加载更多</button>';
+  }
+}
+
+function loadMore(){ S.page++; load(S.page); }
+
+function cardHTML(m,idx){
+  const cover = m.cover
+    ? `<img loading="lazy" src="${m.cover}" onerror="this.parentNode.innerHTML='<div class=noimg>无封面</div>'">`
+    : `<div class="noimg">无封面</div>`;
+  // 金币内容显示所需金币数（goldPayUnit）
+  let pay='';
+  if(m.payType==1) pay='<span class="badge free">免费</span>';
+  else if(m.payType==2) pay=`<span class="badge coin">${m.goldPayUnit||'?'} 金币</span>`;
+  else if(m.payType==4) pay='<span class="badge vip">VIP</span>';
+  // 漫画/小说/短剧没有视频地址，右下角显示章节而不是时长
+  const isComic = m.kind==='comic';
+  const corner = isComic
+    ? `<span class="dur">${m.chapterCurrentTitle || ('第'+(m.chapterCurrentSeq||1)+'话')}</span>`
+    : (m.duration ? `<span class="dur">${fmtDur(m.duration)}</span>` : '');
+  const meta = isComic
+    ? `<span>▶ ${fmtViews(m)}</span><span>♥ ${m.favorCount||0}</span>
+       <span>${m.comicAuthor?'作者 '+esc(m.comicAuthor):''}</span>`
+    : `<span>▶ ${fmtViews(m)}</span><span>♥ ${m.favorCount||0}</span>
+       <span>${(m.publishTime||'').slice(0,10)}</span>`;
+  const tg = (m.tags||[]).slice(0,3).map(t=>`<span>${esc(t.name)}</span>`).join('');
+  return `<div class="card" onclick="openDetail(${idx-1})">
+    <div class="thumb">${cover}${pay}${corner}</div>
+    <div class="info">
+      <div class="t">${esc(m.title)}</div>
+      <div class="m">${meta}</div>
+      ${tg?`<div class="tg">${tg}</div>`:''}
+    </div></div>`;
+}
+
+//缓存当前页数据供播放用
+let PAGE_CACHE=[];
+
+function setSort(v,el){
+  document.querySelectorAll('[data-sort]').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on'); S.order=v; reset(); load(1);
+}
+
+function doSearch(){
+  const v=$('#q').value.trim();
+  S.kw=v; S.tag=null; S.l1=S.l2=S.l3=null;
+  document.querySelectorAll('#nav .chip').forEach(c=>c.classList.remove('on'));
+  reset();
+  if(v){ $('#row2').classList.add('hidden'); $('#row3').classList.add('hidden'); }
+  load(1);
+}
+function clearSearch(){ $('#q').value=''; doSearch(); }
+
+$('#q').addEventListener('keydown',e=>{ if(e.key==='Enter') doSearch(); });
+
+// ── 详情 + 选线路 + 新窗口播放 ──────────────────────────
+async function ensureCdn(){
+  if(S.cdnNames && S.cdnNames.length) return S.cdnNames;
+  const r=await fetch('/api/cdn').then(x=>x.json());
+  // 保留线路显示名（播放线路09 / 国际线路03 …），不要只留域名
+  S.cdnNames=(r.lines||[]).map(l=>({name:l.name, url:(l.url||'').replace(/\/$/,'')}));
+  return S.cdnNames;
+}
+
+async function openDetail(idx){
+  const m=(window.__LIST||[])[idx];
+  if(!m){ toast('数据已过期，请重新加载'); return; }
+  S.playing=m; S.line=0;
+
+  $('#ptitle').textContent=m.title;
+  $('#pcover').src=m.cover||'';
+  $('#pcover').style.display=m.cover?'':'none';
+  const payTxt = m.payType==1 ? '免费'
+               : m.payType==2 ? `金币 ${m.goldPayUnit||'?'}`
+               : m.payType==4 ? 'VIP' : '未知';
+  const isComic = m.kind==='comic';
+  const meta = isComic
+    ? [`播放 ${fmtViews(m)}`, `收藏 ${m.favorCount||0}`, payTxt,
+       m.comicAuthor?`作者 ${m.comicAuthor}`:'', (m.publishTime||'').slice(0,10)]
+      .filter(Boolean)
+    : [`时长 ${fmtDur(m.duration)}`, `播放 ${fmtViews(m)}`,
+       `收藏 ${m.favorCount||0}`, payTxt, (m.publishTime||'').slice(0,10)];
+  $('#pmeta').innerHTML=meta.map(s=>`<span>${esc(s)}</span>`).join('');
+  $('#ptags').innerHTML=(m.tags||[]).map(t=>`<span>#${esc(t.name)}</span>`).join('');
+  $('#pdesc').innerHTML = m.desc ? esc(m.desc) : '<span style="color:#9ca3af">暂无简介</span>';
+  $('#pnote').style.display='none';
+
+  // 漫画/小说/短剧：没有视频地址，隐藏播放线路与播放按钮
+  $('#pline').style.display = isComic ? 'none' : '';
+  $('#goPlay').style.display = isComic ? 'none' : '';
+  $('#purl').style.display = isComic ? 'none' : '';
+  $('#copyBtn').style.display = isComic ? 'none' : '';
+  $('#pbuy').style.display = 'none';
+  if(isComic){
+    $('#plines').innerHTML='';
+    $('#modal').classList.add('show');
+    const chap = m.chapterCurrentTitle || (m.chapterCurrentSeq? '第'+m.chapterCurrentSeq+'话':'');
+    $('#purl').style.display='';
+    $('#purl').innerHTML = `本章：${esc(chap||'—')}` +
+      (m.chapterTotal? ` · 共 ${m.chapterTotal} 话`:'') +
+      (m.chapterOver===1?' · <b style="color:#16a34a">已完结</b>':'');
+    return;
+  }
+
+  const cdn=await ensureCdn();
+  $('#plines').innerHTML = cdn.length
+    ? cdn.map((l,i)=>`<span class="chip${i===0?' on':''}" id="ln${i}"
+        onclick="switchLine(${i})">${esc(l.name)}</span>`).join('')
+    : '<span style="color:#9ca3af;font-size:13px">没有可用线路</span>';
+  $('#modal').classList.add('show');
+  updateLink();
+
+  // 金币视频：显示购买行（余额实时查；preview=true 说明当前只有试看）
+  if(m.payType==2 && m.id){
+    $('#pbuy').style.display='flex';
+    $('#buyBtn').disabled=false;
+    $('#buyBtn').textContent='购买完整版';
+    $('#pbuyInfo').textContent='本视频需 '+(m.goldPayUnit||'?')+' 金币，查询余额中…';
+    try{
+      const me=await fetch('/api/me').then(x=>x.json());
+      const bal=(me.info&&me.info.coinBalance)??0;
+      const vip=!!(me.info&&me.info.vipFlag);
+      $('#pbuyInfo').textContent='本视频需 '+(m.goldPayUnit||'?')+' 金币购买完整版 · 当前余额 '+bal+' 金币'
+        +(vip?' · VIP':' ·（金币可通过邀请奖励获取）');
+    }catch(e){
+      $('#pbuyInfo').textContent='本视频需 '+(m.goldPayUnit||'?')+' 金币购买完整版';
+    }
+  }
+}
+
+// 金币购买：成功后重取详情，把试看直链换成完整直链并刷新账号状态
+async function buyCurrent(){
+  const m=S.playing;
+  if(!m || !m.id){ toast('没有要购买的视频'); return; }
+  const btn=$('#buyBtn');
+  btn.disabled=true; btn.textContent='购买中…';
+  try{
+    const r=await fetch('/api/purchase',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mediaId:String(m.id), mediaType:m.mediaType||1})
+    }).then(x=>x.json());
+    if(!r.ok){
+      toast('购买失败：'+(r.msg||'未知错误'));
+      if(String(r.msg||'').indexOf('余额不足')>=0)
+        toast('余额不足：可通过「🎁 邀请奖励」或「获取VIP」获取金币/VIP');
+      return;
+    }
+    toast('购买成功，已解锁完整版');
+    // 重取详情：换完整直链
+    const d=await fetch('/api/media?mediaId='+m.id+'&mediaType='+(m.mediaType||1)).then(x=>x.json());
+    if(d.ok && d.item){
+      S.playing.videoPath=d.item.videoPath||'';
+      S.playing.previewPath=d.item.previewPath||'';
+      updateLink();
+      toast(d.preview===false ? '完整版直链已就绪，点「▶ 播放」观看' : '仍为试看地址，可能未生效');
+    }
+    // 刷新账号区余额
+    loadMe();
+  } finally {
+    btn.disabled=false; btn.textContent='购买完整版';
+  }
+}
+
+function curUrl(){
+  const m=S.playing; if(!m) return '';
+  const lines=S.cdnNames||[];
+  const base=(lines[S.line]||{}).url||'';
+  const path=m.videoPath||m.previewPath||'';
+  if(!path) return '';
+  return path.startsWith('http') ? path : base+path;
+}
+
+function updateLink(){
+  const u=curUrl();
+  $('#purl').innerHTML = u
+    ? '当前线路直链：<code style="word-break:break-all">'+esc(u)+'</code>'
+    : '<span style="color:#dc2626">该内容没有可播放地址</span>';
+  $('#goPlay').disabled = !u;
+}
+
+function switchLine(i){
+  S.line=i;
+  document.querySelectorAll('#plines .chip').forEach(c=>c.classList.remove('on'));
+  const el=$('#ln'+i); if(el) el.classList.add('on');
+  updateLink();
+}
+
+function copyLink(){
+  const u=curUrl();
+  if(!u){ toast('没有可复制的直链'); return; }
+  const done=()=>toast('直链已复制，粘贴到 VLC / PotPlayer 可播');
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(u).then(done).catch(()=>fallbackCopy(u,done));
+  } else fallbackCopy(u,done);
+}
+function fallbackCopy(text,done){
+  const ta=document.createElement('textarea');
+  ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); done(); }
+  catch(e){ toast('复制失败，请手动选中直链复制'); }
+  document.body.removeChild(ta);
+}
+
+// 点击播放：直接在当前浏览器窗口新建标签页打开「视频直链」本身。
+// 注意两点：
+//  1. window.open 第三参只要带 width/height 等特性就会强制弹成独立小窗口，
+//     想要「新标签页」必须省略特性串，只给 url + '_blank'
+//  2. 打开的是 m3u8 直链本身（curUrl()），浏览器直连 CDN，不经本服务器
+function openPlayer(){
+  const u=curUrl();
+  if(!u){ toast('没有可播放地址'); return; }
+  window.open(u, '_blank');
+}
+
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,
+    c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function closeModal(){ $('#modal').classList.remove('show'); }
+
+// ── 账号 / 状态 ─────────────────────────────────────────
+// 账号旁显示 VIP 判断：VIP(金色徽章+剩余天数) / 非VIP(灰徽章) + 金币余额
+function vipDays(info){
+  if(!info || !info.vipFlag || !info.vipEnd) return 0;
+  const t = new Date(String(info.vipEnd).replace(' ', 'T')).getTime();
+  if (!t) return 0;
+  return Math.max(0, Math.ceil((t - Date.now()) / 86400000));
+}
+
+async function loadMe(){
+  const r=await fetch('/api/me').then(x=>x.json());
+  const el=$('#acctTxt');
+  if(r.ok && r.info){
+    const n=r.info.nickName||r.info.userAcct||'?';
+    const vip=!!r.info.vipFlag;
+    const d=vipDays(r.info);
+    const coin=r.info.coinBalance ?? 0;
+    el.innerHTML = `${n} ` +
+      (vip ? `<span class="vipb">VIP${d?` · 剩${d}天`:''}</span>`
+           : `<span class="novipb">非VIP</span>`) +
+      ` <span class="coinb">${coin} 金币</span>`;
+    el.title='mac='+r.mac;
+  } else { el.textContent='账号未就绪'; }
+}
+
+// ── 邀请奖励（协议：/front/activity/getAvailableRecord · receiveRightNow · userGetInviteConfig） ──
+function giveLabel(t, n){
+  if(t==='vip') return `VIP会员 ${n} 天`;
+  if(t==='coin') return `${n} 金币`;
+  if(t==='undress') return `脱衣卡 ×${n}`;
+  if(t==='facevideo') return `AI换脸视频 ×${n}`;
+  return `${t} ×${n}`;
+}
+
+async function openInvite(){
+  $('#invModal').classList.add('show');
+  $('#invStat').innerHTML='<span style="color:#9ca3af;font-size:12px">载入中…</span>';
+  $('#invCfg tbody').innerHTML='';
+  const r=await fetch('/api/invite/info').then(x=>x.json());
+  const rec=r.record||{};
+  const invited=rec.invitedNum||0, canGet=rec.shouldGetNum||0;
+  $('#invStat').innerHTML =
+    `<div class="box"><b>${invited}</b><span>已邀请人数</span></div>` +
+    `<div class="box"><b>${canGet}</b><span>当前可领奖励（${giveLabel(rec.giveType,canGet)}）</span></div>` +
+    `<div class="box"><b>${(r.info&&r.info.vipFlag)?'VIP':'非VIP'}</b><span>当前账号状态</span></div>`;
+  // 档位表：已达成的高亮
+  const rows=(r.config||[]).map(c=>{
+    const hit=invited>=c.inviteNum;
+    return `<tr class="${hit?'hit':''}"><td>${c.inviteNum} 人</td>` +
+           `<td>${c.giveType==='vip'?'VIP':(c.giveType==='coin'?'金币':c.giveType)}</td>` +
+           `<td>${giveLabel(c.giveType,c.giveNum)}${hit?' ✅':''}</td></tr>`;
+  }).join('');
+  $('#invCfg tbody').innerHTML = rows || '<tr><td colspan="3">档位配置为空</td></tr>';
+}
+
+function closeInvite(){ $('#invModal').classList.remove('show'); }
+
+async function claimInvite(){
+  const btn=$('#claimBtn');
+  btn.disabled=true; btn.textContent='领取中…';
+  try{
+    const r=await fetch('/api/invite/claim',{method:'POST'}).then(x=>x.json());
+    toast(r.ok ? '领取成功：'+(r.msg||'已到账') : '领取失败：'+(r.msg||'无可领奖励'));
+    // 刷新账号状态（VIP/金币可能变化）
+    if(r.info){ await loadMe(); }
+    await openInvite();   // 重拉可领数
+  } finally {
+    btn.disabled=false; btn.textContent='领取奖励';
+  }
+}
+
+async function newGuest(){
+  if(!confirm('换一个新游客号？（同一 mac 永远是同一账号）')) return;
+  const r=await fetch('/api/newguest',{method:'POST'}).then(x=>x.json());
+  toast(r.ok?'已换新号':'换号失败: '+(r.msg||''));
+  if(r.ok){ reset(); load(1); loadMe(); }
+}
+
+async function showHealth(){
+  const r=await fetch('/api/health').then(x=>x.json());
+  alert('端口: '+r.port+'\n协议: AES-256-ECB (已解密)\n账号: '+(r.token?'就绪':'未登录'));
+}
+
+// 包装 load：保存原始列表供播放使用
+(async function init(){
+  await loadCats();
+  await loadTags();
+  await loadMe();
+  const cdn=await ensureCdn();
+  if(S.cats.length) pickL1(S.cats[0].id, $('#row1 .chip'));
+})();
+</script>
+</body>
+</html>
